@@ -1,0 +1,156 @@
+============================
+ LAB 1: Introduction to SQL
+============================
+
+-- Create Student table
+CREATE TABLE STUDENT (
+    reg_no NUMBER(5) PRIMARY KEY,
+    stu_name VARCHAR2(20),
+    stu_age NUMBER(3),
+    stu_dob DATE,
+    subject1_marks NUMBER(4,2),
+    subject2_marks NUMBER(4,2),
+    subject3_marks NUMBER(4,2)
+);
+
+-- Insert records
+INSERT INTO STUDENT VALUES (101, 'AAA', 16, '03-JUL-88', 80, 90, 98);
+INSERT INTO STUDENT VALUES (102, 'KRISH', 17, '15-AUG-88', 75, 85, 92);
+
+-- Select queries
+SELECT * FROM STUDENT;
+SELECT stu_age AS student_age FROM STUDENT;
+SELECT reg_no, stu_name,
+       subject1_marks + subject2_marks + subject3_marks AS tot_marks
+FROM STUDENT;
+
+-- Alter table
+ALTER TABLE STUDENT ADD (Gender CHAR(5));
+ALTER TABLE STUDENT DROP COLUMN Gender;
+
+-- Rename table
+RENAME STUDENT TO STUDENTS;
+
+-- Truncate & Drop
+TRUNCATE TABLE STUDENTS;
+DROP TABLE STUDENTS;
+
+
+===============================
+ LAB 2: Integrity Constraints
+===============================
+
+-- Create Department and Employee tables with constraints
+CREATE TABLE Department (
+    DeptNo NUMBER PRIMARY KEY,
+    DeptName VARCHAR2(30) UNIQUE NOT NULL,
+    Location VARCHAR2(30)
+);
+
+CREATE TABLE Employee (
+    EmpNo NUMBER PRIMARY KEY,
+    EmpName VARCHAR2(30) NOT NULL,
+    Gender CHAR(1) CHECK (Gender IN ('M','F')),
+    Salary NUMBER NOT NULL,
+    Address VARCHAR2(50) NOT NULL,
+    DNo NUMBER,
+    CONSTRAINT fk_dept FOREIGN KEY (DNo) REFERENCES Department(DeptNo) ON DELETE CASCADE
+);
+
+-- Insert valid records
+INSERT INTO Department VALUES (1, 'CSE', 'Manipal');
+INSERT INTO Department VALUES (2, 'ECE', 'Bangalore');
+
+INSERT INTO Employee VALUES (101, 'John', 'M', 20000, 'Manipal', 1);
+INSERT INTO Employee VALUES (102, 'Alice', 'F', 25000, 'Bangalore', 2);
+
+-- Insert violating constraint (Error expected)
+INSERT INTO Employee VALUES (103, 'Bob', 'X', 15000, 'Delhi', 1);
+
+-- Modify constraint to set default salary
+ALTER TABLE Employee ADD CONSTRAINT default_salary DEFAULT 10000 FOR Salary;
+
+-- Queries on University schema
+SELECT name, dept_name FROM Student;
+SELECT * FROM Instructor WHERE dept_name = 'CSE';
+SELECT title FROM Course WHERE dept_name = 'CSE' AND credits = 3;
+
+-- String operations
+SELECT name, LENGTH(name) FROM Student;
+SELECT UPPER(name) FROM Instructor;
+
+
+==================================
+ LAB 3: Intermediate SQL Queries
+==================================
+
+-- Set Operations
+SELECT course_id FROM Section WHERE semester='Fall' AND year=2009
+UNION
+SELECT course_id FROM Section WHERE semester='Spring' AND year=2010;
+
+SELECT course_id FROM Section WHERE semester='Fall' AND year=2009
+INTERSECT
+SELECT course_id FROM Section WHERE semester='Spring' AND year=2010;
+
+SELECT course_id FROM Section WHERE semester='Fall' AND year=2009
+MINUS
+SELECT course_id FROM Section WHERE semester='Spring' AND year=2010;
+
+-- Nested Subqueries
+SELECT name FROM Student WHERE name IN (SELECT name FROM Instructor);
+
+-- Salary comparison
+SELECT name FROM Instructor
+WHERE salary > ALL (SELECT salary FROM Instructor WHERE dept_name='Biology');
+
+-- Departments with highest avg salary
+SELECT dept_name FROM Instructor GROUP BY dept_name
+HAVING AVG(salary) = (SELECT MAX(AVG(salary)) FROM Instructor GROUP BY dept_name);
+
+-- Views
+CREATE VIEW all_courses AS
+SELECT course_id, building, room_number
+FROM Section
+WHERE dept_name='Physics' AND semester='Fall' AND year=2009;
+
+CREATE VIEW department_total_salary AS
+SELECT dept_name, SUM(salary) AS total_salary
+FROM Instructor GROUP BY dept_name;
+
+
+=================================
+ LAB 4: Complex SQL Queries
+=================================
+
+-- Group By
+SELECT course_id, COUNT(ID) AS num_students
+FROM Takes GROUP BY course_id;
+
+SELECT dept_name, AVG(salary) AS avg_salary
+FROM Instructor GROUP BY dept_name
+HAVING AVG(salary) > 42000;
+
+-- Order By
+SELECT course_id, prereq_id FROM Prereq ORDER BY course_id ASC;
+SELECT name, salary FROM Instructor ORDER BY salary DESC;
+
+-- Derived Relations
+SELECT MAX(total_salary)
+FROM (SELECT dept_name, SUM(salary) AS total_salary FROM Instructor GROUP BY dept_name);
+
+-- With Clause
+WITH DeptBudget AS (
+    SELECT dept_name, SUM(salary) AS total_salary
+    FROM Instructor GROUP BY dept_name
+)
+SELECT dept_name FROM DeptBudget
+WHERE total_salary > (SELECT AVG(total_salary) FROM DeptBudget);
+
+-- Transactions
+SAVEPOINT S1;
+DELETE FROM Instructor WHERE dept_name='Finance';
+ROLLBACK TO S1;
+
+UPDATE Instructor SET salary = salary * 1.05;
+COMMIT;
